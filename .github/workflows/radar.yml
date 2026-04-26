@@ -1,9 +1,9 @@
-name: WB Radar Update
+name: HH Market Radar
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Запуск каждые 6 часов
-  workflow_dispatch: # Позволяет запустить вручную
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   update:
@@ -22,9 +22,8 @@ jobs:
         run: python tracker.py
       - name: Commit and Push
         run: |
-          git config --global user.name "RadarBot"
+          git config --global user.name "HH-Radar-Bot"
           git config --global user.email "bot@github.com"
           git add data/deals.json
-          git commit -m "Radar sync: $(date)" || exit 0
+          git commit -m "HH Stats Update: $(date)" || exit 0
           git push
-          
