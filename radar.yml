@@ -1,0 +1,29 @@
+name: WB Radar Update
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Запуск каждые 6 часов
+  workflow_dispatch: # Позволяет запустить вручную
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run Tracker
+        run: python tracker.py
+      - name: Commit and Push
+        run: |
+          git config --global user.name "RadarBot"
+          git config --global user.email "bot@github.com"
+          git add data/deals.json
+          git commit -m "Radar sync: $(date)" || exit 0
+          git push
