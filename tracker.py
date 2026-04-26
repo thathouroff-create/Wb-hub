@@ -1,34 +1,38 @@
 import requests
 import json
 import os
-import time
 
-# Категории: Электроника, Дом, Одежда
-SEARCH_QUERIES = ["смартфон", "пылесос", "кроссовки"]
+# Используем прямые ID категорий для обхода блокировок поиска
+# 600 - Электроника, 258 - Дом, 70 - Женщинам, 71 - Мужчинам
+CATEGORIES = [
+    {"id": 600, "name": "Электроника"},
+    {"id": 258, "name": "Дом"},
+    {"id": 70, "name": "Одежда"}
+]
 
 def get_deals():
     all_deals = []
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': '*/*',
-        'Host': 'search.wb.ru'
+        'Origin': 'https://www.wildberries.ru'
     }
     
-    for query in SEARCH_QUERIES:
-        # dest=-1257786 — это Москва. Это важно для отображения цен и наличия.
-        url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest=-1257786&query={query}&resultset=catalog"
+    for cat in CATEGORIES:
+        # Прямой URL каталога (он стабильнее поиска)
+        url = f"https://catalog.wb.ru/catalog/repair10/v4/list?appType=1&cat={cat['id']}&curr=rub&dest=-1257786&sort=discount"
         
         try:
-            res = requests.get(url, headers=headers, timeout=15)
-            if res.status_code != 200: continue
+            print(f"Запрос категории: {cat['name']}...")
+            res = requests.get(url, headers=headers, timeout=20)
             
             data = res.json()
             products = data.get('data', {}).get('products', [])
             
-            print(f"По запросу '{query}' получено {len(products)} товаров")
+            print(f"Получено из WB: {len(products)} товаров")
             
-            # Берем первые 5 товаров для проверки связи
-            for p in products[:5]:
+            # Берем первые 10 товаров с лучшими скидками
+            for p in products[:10]:
                 all_deals.append({
                     "id": p['id'],
                     "name": p['name'],
@@ -37,17 +41,17 @@ def get_deals():
                     "old_price": p.get('priceU', 0) / 100,
                     "discount": p.get('sale', 0),
                     "rating": p.get('rating', 0) / 10,
-                    "reviews": p.get('feedbacks', 0)
+                    "reviews": p.get('feedbacks', 0),
+                    "category": cat['name']
                 })
-            time.sleep(2)
         except Exception as e:
-            print(f"Ошибка {query}: {e}")
+            print(f"Ошибка в {cat['name']}: {e}")
             
     return all_deals
 
 if __name__ == "__main__":
     deals = get_deals()
-    print(f"Итого в файл: {len(deals)} шт.")
+    print(f"Итого отобрано: {len(deals)}")
     
     os.makedirs('data', exist_ok=True)
     with open('data/deals.json', 'w', encoding='utf-8') as f:
