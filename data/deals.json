@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "name": "API в блоке",
+    "count": 0,
+    "price": 0,
+    "brand": "DEBUG"
+  },
+  {
+    "name": "Тестовый DevOps",
+    "count": 404,
+    "price": 250000,
+    "brand": "TEST"
+  }
+]
