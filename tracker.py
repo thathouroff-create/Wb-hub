@@ -2,42 +2,45 @@ import requests
 import json
 import os
 
-# Настройки фильтров
-CONFIG = [
-    {"id": 600, "name": "Электроника", "min_rating": 45, "min_reviews": 200, "min_discount": 30},
-    {"id": 258, "name": "Дом", "min_rating": 45, "min_reviews": 100, "min_discount": 50},
-    {"id": 70, "name": "Одежда", "min_rating": 43, "min_reviews": 300, "min_discount": 70}
+# Настраиваем поиск по ключевым словам
+# Можно добавлять любые фразы: "iphone", "инструменты для кожи", "кроссовки"
+SEARCH_QUERIES = [
+    {"query": "смартфон xiaomi", "min_rating": 45, "min_discount": 20},
+    {"query": "набор инструментов", "min_rating": 45, "min_discount": 30},
+    {"query": "кожа pueblo", "min_rating": 40, "min_discount": 10},
+    {"query": "футболка мужская", "min_rating": 45, "min_discount": 50}
 ]
 
 def get_deals():
     all_deals = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    for cat in CONFIG:
-        # API каталога WB с сортировкой по скидке
-        url = f"https://catalog.wb.ru/catalog/repair10/v4/list?appType=1&cat={cat['id']}&curr=rub&dest=-1257786&sort=discount"
+    for item in SEARCH_QUERIES:
+        query = item['query']
+        # Универсальный API поиска WB
+        url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest=-1257786&query={query}&resultset=catalog&sort=priceup"
+        
         try:
             res = requests.get(url, headers=headers, timeout=15)
             data = res.json()
             products = data.get('data', {}).get('products', [])
             
             for p in products:
-                # Фильтруем по качеству
-                if p.get('rating', 0) >= cat['min_rating'] and p.get('feedbacks', 0) >= cat['min_reviews']:
-                    if p.get('sale', 0) >= cat['min_discount']:
-                        all_deals.append({
-                            "id": p['id'],
-                            "name": p['name'],
-                            "brand": p['brand'],
-                            "price": p['salePriceU'] / 100,
-                            "old_price": p['priceU'] / 100,
-                            "discount": p['sale'],
-                            "rating": p['rating'] / 10,
-                            "reviews": p['feedbacks'],
-                            "category": cat['name']
-                        })
+                # Фильтр по качеству и скидке
+                if p.get('rating', 0) >= item['min_rating'] and p.get('sale', 0) >= item['min_discount']:
+                    all_deals.append({
+                        "id": p['id'],
+                        "name": p['name'],
+                        "brand": p['brand'],
+                        "price": p['salePriceU'] / 100,
+                        "old_price": p['priceU'] / 100,
+                        "discount": p['sale'],
+                        "rating": p['rating'] / 10,
+                        "reviews": p['feedbacks'],
+                        "query": query
+                    })
         except Exception as e:
-            print(f"Ошибка в категории {cat['name']}: {e}")
+            print(f"Ошибка при поиске '{query}': {e}")
             
     return all_deals
 
@@ -46,4 +49,4 @@ if __name__ == "__main__":
     os.makedirs('data', exist_ok=True)
     with open('data/deals.json', 'w', encoding='utf-8') as f:
         json.dump(deals, f, indent=2, ensure_ascii=False)
-    print(f"Найдено {len(deals)} предложений.")
+    print(f"Найдено {len(deals)} товаров по вашим запросам.")
