@@ -2,37 +2,37 @@ import requests
 import json
 import os
 
-def get_hh_stats():
-    # Ищем вакансии для системных инженеров и разработчиков
+def get_hh_data():
     queries = ["DevOps", "Python developer", "Системный администратор"]
-    results = []
+    all_stats = []
     
     for q in queries:
-        url = f"https://api.hh.ru/vacancies?text={q}&area=1&per_page=10"
-        res = requests.get(url, headers={'User-Agent': 'HH-User-Agent'})
-        if res.status_code == 200:
-            data = res.json()
-            # Берем среднюю зарплату и количество вакансий
-            count = data.get('found', 0)
-            items = data.get('items', [])
-            avg_salary = 0
-            valid_salaries = 0
-            
-            for i in items:
-                sal = i.get('salary')
-                if sal and sal.get('from'):
-                    avg_salary += sal.get('from')
-                    valid_salaries += 1
-            
-            results.append({
-                "query": q,
-                "count": count,
-                "avg_salary": int(avg_salary / valid_salaries) if valid_salaries > 0 else 0
-            })
-    return results
+        # API HH: поиск вакансий по Москве (area=1)
+        url = f"https://api.hh.ru/vacancies?text={q}&area=1&per_page=50"
+        try:
+            res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                found = data.get('found', 0)
+                items = data.get('items', [])
+                
+                # Считаем среднюю вилку зарплат "от"
+                salaries = [i['salary']['from'] for i in items if i.get('salary') and i['salary'].get('from')]
+                avg_sal = int(sum(salaries) / len(salaries)) if salaries else 0
+                
+                all_stats.append({
+                    "name": q,
+                    "count": found,
+                    "price": avg_sal, # Используем поле price для совместимости с index.html
+                    "brand": "HH.ru",
+                    "discount": 0 # Для HH это не актуально, но поле оставим
+                })
+        except Exception as e:
+            print(f"Ошибка HH на {q}: {e}")
+    return all_stats
 
 if __name__ == "__main__":
-    stats = get_hh_stats()
+    data = get_hh_data()
     os.makedirs('data', exist_ok=True)
     with open('data/deals.json', 'w', encoding='utf-8') as f:
-        json.dump(stats, f, indent=2, ensure_ascii=False)
+        json.dump(data, f, indent=2, ensure_ascii=False)
